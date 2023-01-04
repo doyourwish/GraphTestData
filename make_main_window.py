@@ -37,9 +37,28 @@ def main():
     #クリアボタン
     button = tk.Button(text='clear', font= ("MS Gothic","10", "normal"), command = lambda : clear(label_list))
     button.place(relx = 0.1,rely = 0.9 ,anchor = tk.CENTER,width = 70, height = 30)
+    
+    #caseラベル、ボタン設置
+    case_label = tk.Label(text="CASE番号を,区切りで入力")
+    case_label.place(x=30,y=30)
+    textBox4= tk.Entry(width=20)
+    textBox4.place(x=30,y=50)
+    button = tk.Button(text='clear', font= ("MS Gothic", "10","normal"), command = lambda : reset(textBox4))
+    button.place (x=115, y=70,width= 40, height = 20)
+
+    #ラジオボタン設置
+    radio_label=tk.Label(text="第二軸も使用")
+    radio_label.place(x=30,y=280)
+    radio_value=tk.IntVar(value=1)
+    radio_yes=tk.Radiobutton(text ="Yes",command = lambda : radio_click(radio_value,label_list3,main_win),variable=radio_value, value=0)
+    radio_no=tk.Radiobutton(text = "No" ,command = lambda : radio_click(radio_value,label_list3,main_win),variable=radio_value, value=1)
+    radio_yes.place(x=30,y=300)
+    radio_no.place(x=30,y=320)
+
     #グラフ化ボタン
-    #button = tk.Button(text="graph",font =("MS Gothic","10", "normal"), command = lambda : graph)
-    #button.place(relx = 0.5,rely = 0.9, anchor = tk.CENTER,width = 70, height = 30)
+    button = tk.Button(text="graph",font =("MS Gothic","10", "normal"), command = lambda : graph(textBox4,radio_value,label_list))
+    button.place(relx = 0.5,rely = 0.9, anchor = tk.CENTER,width = 70, height = 30)
+    
     #閉じるボタン
     button = tk.Button(text='end', font= ("MS Gothic","10", "normal"), command = lambda : end(main_win))
     button.place(relx = 0.9,rely = 0.9 ,anchor = tk.CENTER, width = 70, height = 30)
@@ -48,16 +67,8 @@ def main():
     list_label = tk.Label(text="CSV列名")
     list_label.place(x=270,y=10)
     listbox=tk.Listbox(width = 30,height=20, listvariable=list_var)
-    listbox.bind('<<ListboxSelect>>', lambda e: select_list())
+    listbox.bind('<<ListboxSelect>>', lambda e: select_list(listbox,selected_column,label_list))
     listbox.place(x=200,y=30)
-
-    #caseラベル、ボタン設置
-    case_label = tk.Label(text="CASE番号を,区切りで入力")
-    case_label.place(x=30,y=30)
-    textBox4= tk.Entry(width=20)
-    textBox4.place(x=30,y=50)
-    button = tk.Button(text='clear', font= ("MS Gothic", "10","normal"), command = reset4)
-    button.place (x=115, y=70,width= 40, height = 20)
 
     #unitラベル、リストボックス設置
     unit_label=tk.Label(text="グラフの縦軸の単位選択")
@@ -68,7 +79,8 @@ def main():
     listbox2.bind("<<ListboxSelect>>", lambda e: select_unit(listbox2,label_list2))
     listbox2.place(x=30,y=180)
 
-    #なぜupdate?
+    #updateする理由は？
+    #これがないとスクロールが出てこないが、よくわかってない
     main_win.update()
 
     #スクロールバー設置
@@ -78,15 +90,6 @@ def main():
     scroll=tk.Scrollbar(orient=tk.VERTICAL,command=listbox.yview)
     scroll.place(x=380,y=30,height=listbox.winfo_height())
     listbox['yscrollcommand']= scroll.set
-
-    #ラジオボタン設置
-    radio_label=tk.Label(text="第二軸も使用")
-    radio_label.place(x=30,y=280)
-    radio_value=tk.IntVar(value=1)
-    radio_yes=tk.Radiobutton(text ="Yes",command = lambda : radio_click(radio_value,label_list3,main_win),variable=radio_value, value=0)
-    radio_no=tk.Radiobutton(text = "No" ,command = lambda : radio_click(radio_value,label_list3,main_win),variable=radio_value, value=1)
-    radio_yes.place(x=30,y=300)
-    radio_no.place(x=30,y=320)
 
     main_win.mainloop()
 
@@ -117,25 +120,18 @@ class GetData:
         print(list)
         return list
 
-# In[3]:
-def clear(_label_list):
-    _label_list.clear()
-    for i in range(len(_label_list)):
-        _label_list[i].destroy()
-        print("[clear] clear box's list")
+def clear(label_list):
+    label_list.clear()
+    for i in range(len(label_list)):
+        label_list[i].destroy()
+    print("[clear] clear box's list")
         
 def end(window):
     window.destroy()
     print("[end] window destory")
-    
-def reset1():
-    textbox1.delete(0,tk.END)
-def reset2():
-    textbox2.delete(0,tk.END)
-def reset3():
-    textbox3.delete(0,tk.END)
-def reset4():
-    textbox4.delete(0,tk.END)
+
+def reset(textbox):
+    textbox.delete(0,tk.END)
 
 #リスト選択
 def select_list(listbox,selected_column,label_list):
@@ -144,8 +140,7 @@ def select_list(listbox,selected_column,label_list):
     label = tk.Label(text=selected_module)
     label.pack(side=tk.TOP,anchor=tk.E)
     
-    print("[select_list] select_list")
-    print(selected_module)
+    print("[select_list] selected_module =",selected_module)
     selected_column.append(selected_module)
     label_list.append(label)
     
@@ -154,45 +149,52 @@ def select_list(listbox,selected_column,label_list):
 #先頭に配列を追加してる理由は？
 def select_unit(listbox,label_list):
     selected_index = listbox.curselection()
-    selected_module = listbox.get(selected_index)
-    label_list.insert(0,selected_module)
-    print("[select_unit] select_unit")
-    
-# In[8]:
+    #listboxの項目を選んだ状態で別のlistboxの項目を選択すると、何故か関数が両方のlistboxから呼ばれる
+    #選択されてないlistboxから関数を呼び出すことは防げてないが、選択は解除されるのでそれで判別
+    if len(selected_index)!=0:
+        for i in selected_index:
+            print("[select_unit] selected_index[i] =",i)
+        selected_module = listbox.get(selected_index)
+        label_list.insert(0,selected_module)
+        print("[select_unit] label_list =",label_list)
+
 def mean():
-   add_column=textBox.get ()
-   column_num=textBox4.get ()
-   column_list= []
+   add_column = textBox.get()
+   column_num = textBox4.get()
+   column_list = []
    listbox.insert(tk.END, add_column)
    while True:
-       check=column_num.find(",")
+       check = column_num.find(",")
        if check==-1:
            column_list.append(column_num)
            break
        column_list.appned(column_num[check-1])
-       column_num=column_num[check+1:]
+       column_num = column_num[check+1:]
        for i in range(len(column_list)):
-               mean_num=column_list[i]
-               mean_num= int(mean_num)-1
-               df_tmp[mean_num][add_column]=0
-               for j in range(len(selected_column)):
-                   df_tmp[mean_num][add_column]+=df_tmp[mean_num][selected_column[j]]
-               df_tmp[mean_num][add_column]= (df_tmp[mean_num][add_column])/len (selected_column)
-# In[11]:
+            mean_num = column_list[i]
+            mean_num = int(mean_num)-1
+            df_tmp[mean_num][add_column]=0
+            for j in range(len(selected_column)):
+                df_tmp[mean_num][add_column] += df_tmp[mean_num][selected_column[j]]
+            df_tmp[mean_num][add_column] = (df_tmp[mean_num][add_column])/len(selected_column)
+
 def radio_click(radio_value,label_list,window):
     radio=radio_value.get()
     if radio==0:
         #ラベル生成
-        radio_label1 = tk.Label (text="第1軸でplot する配列番号を,区切りで入力")
-        radio_label1.place (x=30,y=355)
-        textBox5= tk.Entry (width=20)
-        textBox5.place (x=30,y=380)
-        radio_label2 = tk.Label(text ="第2でplotする配列番号を、区切りで入力")
+        radio_label1 = tk.Label(text="第1軸でplotする配列番号を、区切りで入力")
+        radio_label1.place(x=30,y=355)
+        textBox5 = tk.Entry(width=20)
+        textBox5.place(x=30,y=380)
+        radio_label2 = tk.Label(text="第2軸でplotする配列番号を、区切りで入力")
         radio_label2.place(x=30,y=400)
-        textBox6= tk.Entry(width=20)
+        textBox6 = tk.Entry(width=20)
         textBox6.place(x=30,y=420)
-        unit_label3=tk.Label(text="グラフの第2軸の単位選択")
+        unit_label3 = tk.Label(text="グラフの第2軸の単位選択")
         unit_label3.place(x=30,y=450)
+        
+        first_column = textBox5.get()
+        second_column = textBox6.get()
         
         #リストボックス生成
         list_unit3 = ["a","b","c","d","e"]
@@ -201,53 +203,50 @@ def radio_click(radio_value,label_list,window):
         listbox3.bind('<<ListboxSelect>>', lambda e: select_unit(listbox3,label_list))
         listbox3.place(x=30,y=470)
         
-        #アップデートする理由は？
+        #updateする理由は？
+        #これがないとスクロールが出てこないが、よくわかってない
         window.update()
         
+        #スクロールバー生成
         scroll3=tk.Scrollbar(orient=tk.VERTICAL, command=listbox3.yview)
         scroll3.place(x=160,y=470,height=listbox3.winfo_height())
         listbox3 ["yscrollcommand"] = scroll3.set
         first_column=textBox5.get()
         second_column=textBox6.get()
-        return radio,first_column,second_column
         
-# In[26]:
-def graph():
-    #グラフ表示サブウィンドウ生成
+    #グラフ用に返り値を返す
+    return radio,first_column,second_column
+        
+def check_column(column,list):
+    print("[check_column] column =",column)
+    while True:
+        check=column.find(",")
+        if check==-1:
+            list.append(column)
+            break
+        list.append(column[check-1])
+        column=column[check+1:]
+        
+def graph(textBox4,radio_value,label_list):
+    #グラフ表示用サブウィンドウ生成
     sub_win = tk.Toplevel()
     sub_win.title("graph_window")
-    sub_win.geometry("1000×600")
+    sub_win.geometry("1000x600")
     
-    #縦軸取得？
+    #case_num取得
     case_num=textBox4.get()
-    case_list=[]
-    radio,first_column,secend_column=radio_click()
+    radio,first_column,second_column=radio_click(radio_value,label_list,sub_win)
     print(radio)
     print(first_column)
     print(second_column)
+    
+    #カラムチェック
     first_list=[]
     second_list=[]
-    while True:
-        check=first_column.find(",")
-        if check==-1:
-            first_list.append(first_column)
-            break
-        first_list.append(first_column[check-1])
-        first_column=first_column[check+1:]
-    while True:
-        check=second_column.find (",")
-        if check==-1:
-            second_list.append(second_column)
-            break
-        second_list.append(second_column[check-1])
-        second_column=second_column[check+1:]
-    while True:
-        check=case_num.find(",")
-        if check==-1:
-            case_list.append(case_num)
-            break
-        case_list.append(case_num[check-1])
-        case_num=case_num[check+1:]
+    case_list=[]
+    check_column(first_column,first_list)
+    check_column(second_column,second_list)
+    check_column(case_num,case_list)
         
     if len(case_list)>1:
         for j in range(len(selected_column)):
@@ -255,6 +254,7 @@ def graph():
             ax = fig.add_subplot(111)
             for i in range(len(case_list)):
                 number=case_list[i]
+                print("[graph,len(case_list)>1] case_list =",case_list[i])
                 number=int(number)-1
                 ax.plot(df_tmp[number][selected_column[j]], label="Case"+str (number+ 1))
             ax.set_xlabel("経過時間(s)",fontname="MS Gothic")
@@ -271,11 +271,11 @@ def graph():
                 name, ext =os.path.splitext(fig_path)
                 i=1
                 while True:
-                        new_path="{}{:0=3}{}".format(name , i ,ext)
-                        if not os.path.exists(new_path):
-                            fig.savefig(new_path)
-                            break
-                        i+=1
+                    new_path="{}{:0=3}{}".format(name,i,ext)
+                    if not os.path.exists(new_path):
+                        fig.savefig(new_path)
+                        break
+                    i+=1
     else:
         if radio==1:
             case_num= int(case_num)-1
@@ -304,17 +304,20 @@ def graph():
                     i+=1
             else:
                 fig.savefig(fig_path)
-#同一case内で第二動を使ってplot
+        #同一case内で第二動を使ってplot
         else:
             fig=plt.Figure(figsize=(12,4))
             ax1=fig.add_subplot(111)
             ax2=ax1.twinx()
             for i in range(len(first_list)):
                 number=first_list[i]
+                print("[graph,radio!=1] radio =",radio)
+                print("[graph,radio!=1] first_list =",first_list[i])
                 number=int(number)-1
                 ax1.plot(df_tmp[number][selected_column[number]])
-            for i in range (len(second_list)):
+            for i in range(len(second_list)):
                 number=second_list[i]
+                print("[graph] second_list =",second_list[i])
                 number=int(number)-1
                 ax2.plot(df_tmp[number][selected_column[number ]])
             ax1.set_xlabel("経過時間",fontname="MS Gothic")
