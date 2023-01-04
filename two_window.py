@@ -8,7 +8,7 @@ import openpyxl
 from functools import partial
 
 def main():
-    print("tkin.py start")
+    print("two_window.py start")
     #------------------------------------------
     #    カラム選択ウィンドウ生成
     #------------------------------------------
